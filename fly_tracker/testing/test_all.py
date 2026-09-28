@@ -156,9 +156,10 @@ class TestFlightSearch(unittest.TestCase):
             self.itinerary(432, 'Delta', [('BOS', 'ATL', (5, 30), (8, 40))]),
             self.itinerary(250, 'United', [('BOS', 'IAD', (5, 30), (7, 0)), ('IAD', 'ATL', (8, 15), (10, 5))]),
             self.itinerary(299, 'JetBlue', [('BOS', 'ATL', (20, 55), (23, 59))]),
+            self.itinerary(299, 'JetBlue', [('BOS', 'ATL', (20, 55), (23, 59))]),
         ]
         search = GoogleFlights.FlightSearch('bos', 'atl', 300, '2026-11-07', '2026-11-09')
-        with patch.object(GoogleFlights, 'get_flights', return_value=results) as mock_get:
+        with patch.object(GoogleFlights, 'fetch_itineraries', return_value=results) as mock_get:
             df = search.search()
         query = mock_get.call_args.args[0]
         self.assertEqual(query.get_trip_type(), 'round-trip')
@@ -174,7 +175,7 @@ class TestFlightSearch(unittest.TestCase):
         One-way sends a single leg; no results gives an empty frame
         """
         search = GoogleFlights.FlightSearch('BOS', 'ATL', 300, '2026-11-07')
-        with patch.object(GoogleFlights, 'get_flights', side_effect=GoogleFlights.FlightsNotFound) as mock_get:
+        with patch.object(GoogleFlights, 'fetch_itineraries', side_effect=GoogleFlights.FlightsNotFound) as mock_get:
             df = search.search()
         self.assertEqual(mock_get.call_args.args[0].get_trip_type(), 'one-way')
         self.assertTrue(df.empty)

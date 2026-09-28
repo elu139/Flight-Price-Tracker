@@ -12,20 +12,18 @@ authors = [{name = "Ritik Panda", email = "ritik.panda@columbia.edu"}]
 description="The Fly Tracker library lets you monitor the flight prices for any route. The user has the option to set up notifications for the tracked route which can help him book tickets when he wants to."
 readme = "README.md"
 version = "1.0.0"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 
-dependencies = []
+dependencies = ["fast-flights==3.1.0", "pandas>=1.5", "schedule>=1.2", "beautifulsoup4>=4.10", "selenium>=4.1"]
 
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
 
@@ -33,7 +31,7 @@ classifiers = [
 file = "LICENSE"
 
 [project.urls]
-repository = "https://github.com/Ritik3111/fly_tracker"
+repository = "https://github.com/elu139/Flight-Price-Tracker"
 
 [project.optional-dependencies]
 develop = [

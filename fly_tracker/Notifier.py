@@ -1,22 +1,26 @@
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
 import smtplib
 import pandas as pd
-from fly_tracker.Scraper import PriceScraper
 
 class Notifier:
     """
     Notifier class that sends email notification with the scraped data
     """
 
-    def __init__(self, email:str, data:pd.DataFrame, scraper:PriceScraper):
+    def __init__(self, email:str, data:pd.DataFrame, scraper):
         # Define the email sender and recipient
-        self.sender = "pandaritik39@gmail.com"
+        # Gmail address + app password (https://myaccount.google.com/apppasswords)
+        self.sender = os.environ.get("FLY_TRACKER_SENDER", "")
+        self.password = os.environ.get("FLY_TRACKER_APP_PASSWORD", "")
         self.recipient = email
         self.df = data
         self.src = scraper.src
         self.dest = scraper.dest
         self.date = scraper.date
+        return_date = getattr(scraper, 'return_date', None)
+        self.trip = f"{self.date} (returning {return_date})" if return_date else self.date
         # Define the HTML template
         # pylint: disable=R0801
         self.html_template = '''
@@ -62,7 +66,7 @@ class Notifier:
         # Send the message using the SMTP server
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
-        server.login(self.sender, "dwycyikmmvtjllzw")
+        server.login(self.sender, self.password)
         text = msg.as_string()
         server.sendmail(self.sender, self.recipient, text)
         server.quit()
@@ -76,8 +80,8 @@ class Notifier:
         msg = MIMEMultipart()
         msg['From'] = self.sender
         msg['To'] = self.recipient
-        msg['Subject'] = f"FLY_TRACKER: {self.src} to {self.dest} on {self.date} fares"
-        body = f"This is an email notification from fly-tracker with fares for your {self.src} to {self.dest} route on {self.date}"  # noqa: E501
+        msg['Subject'] = f"FLY_TRACKER: {self.src} to {self.dest} on {self.trip} fares"
+        body = f"This is an email notification from fly-tracker with fares for your {self.src} to {self.dest} route on {self.trip}"  # noqa: E501
         msg.attach(MIMEText(body, 'plain'))
 
         # Convert the dataframe to an HTML table

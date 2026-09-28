@@ -1,20 +1,6 @@
-# fly_tracker
-An open source project that helps you get the best flight deals!
-
-![license](https://img.shields.io/github/license/Ritik3111/fly_tracker)
-![issues](https://img.shields.io/github/issues/Ritik3111/fly_tracker)
-![status](https://img.shields.io/github/actions/workflow/status/Ritik3111/fly_tracker/setup.yml)
-[![docs](https://img.shields.io/readthedocs/fly-tracker)](https://fly-tracker.readthedocs.io/en/latest/)
-[![PyPI](https://img.shields.io/pypi/v/fly-tracker)](https://pypi.org/project/fly-tracker/)
-## Code Coverage
-
-[![codecov](https://codecov.io/gh/Ritik3111/fly_tracker/branch/main/graph/badge.svg)](https://codecov.io/gh/Ritik3111/fly_tracker)
-## Overview
-
-The Fly Tracker library lets you monitor the flight prices for any route.
-The user has the option to set up notifications for the tracked route which can help him book tickets when he/she wants to. Once you run the command to start the notifications, the script runs at 12 AM and 12 PM Everyday and this is exactly when you receive the email.
-The source of our data is Google Flights, which is very reliable since it lists the best price for every option and
-hence, we notify you with all options avalaible to you.
+# Flight-Price-Tracker
+Tracks one-way and round-trip fares on Google Flights and emails you when a flight drops below your target price.
+Forked from [Ritik3111/fly_tracker](https://github.com/Ritik3111/fly_tracker).
 
 ## Table of Contents
 
@@ -24,28 +10,42 @@ hence, we notify you with all options avalaible to you.
 
 ## Installation
 
-To install the library:
+```
+pip install -r requirements.txt
+```
 
-`pip install fly-tracker`
+Requires Python 3.10+. No browser or API key is needed: searches go through
+[fast-flights](https://github.com/AWeirdDev/fast-flights), which queries Google Flights directly.
+
+Emails are sent through Gmail. Create an [app password](https://myaccount.google.com/apppasswords) for the sending account and set:
+
+```
+FLY_TRACKER_SENDER=you@gmail.com
+FLY_TRACKER_APP_PASSWORD=abcdabcdabcdabcd
+```
 
 ## Usage
 
-The library takes the following arguments:
+| Argument | Type | Description |
+| -------- | -------- | -------- |
+| --src | string | Origin airport code, e.g. `BOS` |
+| --dest | string | Destination airport code, e.g. `ATL` |
+| --price | int | Notify when a fare is at or below this (USD) |
+| --date | YYYY-MM-DD | Departure date |
+| --return-date | YYYY-MM-DD | Optional. Return date; makes it a round trip |
+| --email | string | Where to send the notification |
 
-| Argument | Name | Type | Description |
-| -------- | -------- | -------- | -------- |
-| src | Source | string | Source City/Airport |
-| dst | Destination | string |Destination City/Airport |
-| price | Price | int |The threshold price that you want to set |
-| date | Date | string | The date you want to fly on |
-| email | Email Address | string | The email address where you want to receive the notifications |
-
-Run the following command:
-`python3 -m fly_tracker --src < src-city > --dest < dest-city > --price < price > --date < date > --email < email >`
-
-Replace < src-city >, < dest-city >, < price >, < date > and < email > with your desired values. This will start tracking the flight prices for the specified route.
+The search runs once immediately, then every day at 12 AM and 12 PM. An email (and a `Results_*.csv`) is produced only when
+at least one fare is under your price.
 
 ## Example
-To receive notifications regarding fares below $100 for the New York to Boston route on May 12th, please execute the following command, with the specified email address included:
 
-`python3 -m fly_tracker --src "New York" --dest "Boston" --price 100 --date "12th May" --email "pandaritik39@gmail.com"`
+One-way, Boston to Atlanta on Nov 7, under $200:
+
+`python -m fly_tracker --src BOS --dest ATL --price 200 --date 2026-11-07 --email you@example.com`
+
+Round trip, returning Nov 9, under $300 total:
+
+`python -m fly_tracker --src BOS --dest ATL --price 300 --date 2026-11-07 --return-date 2026-11-09 --email you@example.com`
+
+For round trips, the price is Google's total for both legs; the table shows the outbound flight.

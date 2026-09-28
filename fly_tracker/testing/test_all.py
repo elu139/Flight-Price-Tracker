@@ -6,7 +6,8 @@ import sys
 from unittest.mock import Mock, patch
 import pandas as pd
 from bs4 import BeautifulSoup
-from fly_tracker import Scraper,Notifier
+from types import SimpleNamespace
+from fly_tracker import Scraper, Notifier, GoogleFlights
 sys.path.append('../')
 sys.path.append('./')
 sys.path.append('testing/')
@@ -115,15 +116,15 @@ class TestPriceScraper(unittest.TestCase):
         page_source = self.PriceScraper.get_page()
         self.assertIsNotNone(page_source)
 
-    @patch('smtplib.SMTP.sendmail')
-    def test_send_mail(self, mock_sendmail):
+    @patch('smtplib.SMTP')
+    def test_send_mail(self, mock_smtp):
         """
         Unit Test for Notifier.send_mail function
         Args:
-            mock_sendmail (_type_): _description_
+            mock_smtp (_type_): _description_
         """
         self.notifier.send_mail(self.notifier.create_message())
-        mock_sendmail.assert_called_once()
+        mock_smtp.return_value.sendmail.assert_called_once()
 
     def test_create_message(self):
         """
@@ -133,6 +134,51 @@ class TestPriceScraper(unittest.TestCase):
         self.assertEqual(msg['From'], self.notifier.sender)
         self.assertEqual(msg['To'], self.email)
         self.assertEqual(msg['Subject'], f"FLY_TRACKER: {self.PriceScraper.src} to {self.PriceScraper.dest} on {self.PriceScraper.date} fares")
+
+class TestFlightSearch(unittest.TestCase):
+    """
+    Unit Tests for GoogleFlights.FlightSearch
+    """
+
+    @staticmethod
+    def itinerary(price, airline, legs):
+        """Fake fast-flights result: legs = [(from, to, dep_time, arr_time), ...]"""
+        return SimpleNamespace(price=price, airlines=[airline], flights=[
+            SimpleNamespace(from_airport=SimpleNamespace(code=a), to_airport=SimpleNamespace(code=b),
+                            departure=SimpleNamespace(time=dep), arrival=SimpleNamespace(time=arr))
+            for a, b, dep, arr in legs])
+
+    def test_round_trip(self) -> None:
+        """
+        Round trip sends both legs, filters by price, sorts cheapest first
+        """
+        results = [
+            self.itinerary(432, 'Delta', [('BOS', 'ATL', (5, 30), (8, 40))]),
+            self.itinerary(250, 'United', [('BOS', 'IAD', (5, 30), (7, 0)), ('IAD', 'ATL', (8, 15), (10, 5))]),
+            self.itinerary(299, 'JetBlue', [('BOS', 'ATL', (20, 55), (23, 59))]),
+        ]
+        search = GoogleFlights.FlightSearch('bos', 'atl', 300, '2026-11-07', '2026-11-09')
+        with patch.object(GoogleFlights, 'get_flights', return_value=results) as mock_get:
+            df = search.search()
+        query = mock_get.call_args.args[0]
+        self.assertEqual(query.get_trip_type(), 'round-trip')
+        self.assertEqual(len(query.flight_data), 2)
+        self.assertEqual(list(df['Price']), [250, 299])
+        self.assertEqual(df.loc[0, 'Destination'], 'ATL')
+        self.assertEqual(df.loc[0, 'Stops'], 1)
+        self.assertEqual(df.loc[0, 'Arrival Time'], '10:05')
+        self.assertIn('returning 2026-11-09', Notifier('a@b.c', df, search).create_message()['Subject'])
+
+    def test_one_way_nothing_found(self) -> None:
+        """
+        One-way sends a single leg; no results gives an empty frame
+        """
+        search = GoogleFlights.FlightSearch('BOS', 'ATL', 300, '2026-11-07')
+        with patch.object(GoogleFlights, 'get_flights', side_effect=GoogleFlights.FlightsNotFound) as mock_get:
+            df = search.search()
+        self.assertEqual(mock_get.call_args.args[0].get_trip_type(), 'one-way')
+        self.assertTrue(df.empty)
+
 
 if __name__ == '__main__':
     unittest.main()

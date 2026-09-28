@@ -13,7 +13,8 @@ class Notifier:
         # Define the email sender and recipient
         # Gmail address + app password (https://myaccount.google.com/apppasswords)
         self.sender = os.environ.get("FLY_TRACKER_SENDER", "")
-        self.password = os.environ.get("FLY_TRACKER_APP_PASSWORD", "")
+        # Google shows app passwords as "abcd efgh ijkl mnop"; the spaces are not part of it
+        self.password = os.environ.get("FLY_TRACKER_APP_PASSWORD", "").replace(" ", "")
         self.recipient = email
         self.df = data
         self.src = scraper.src
